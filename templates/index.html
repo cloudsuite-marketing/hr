@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harry HR – CloudSuite</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a2e4a;
+      color: #fff;
+      padding: 0 20px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    #sidebar-toggle {
+      background: none; border: none; color: #94aec8;
+      cursor: pointer; padding: 6px; border-radius: 8px;
+      display: flex; align-items: center;
+      transition: background .15s, color .15s;
+    }
+    #sidebar-toggle:hover { background: rgba(255,255,255,.08); color: #fff; }
+
+    .harry-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #2d7dd2, #1a5fa3);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(45,125,210,.4);
+    }
+
+    .header-info h1 { font-size: 16px; font-weight: 600; }
+    .header-info p  { font-size: 11px; color: #94aec8; margin-top: 1px; }
+
+    .header-right {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .user-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 99px;
+      padding: 4px 12px 4px 5px;
+    }
+
+    .user-pic {
+      width: 24px; height: 24px; border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user-pic-fallback {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #2d7dd2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff;
+    }
+
+    .user-name { font-size: 12px; color: #cbd5e1; font-weight: 500; }
+
+    .logout-btn {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: #94aec8; font-size: 12px;
+      padding: 5px 10px; cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+    /* ── Layout ── */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 260px;
+      background: #fff;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s ease, opacity .2s ease;
+      overflow: hidden;
+    }
+
+    #sidebar.collapsed { width: 0; opacity: 0; }
+
+    .sidebar-header {
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f1f5f9;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header span {
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: #94a3b8;
+    }
+
+    #new-chat-btn {
+      background: #2d7dd2; color: #fff;
+      border: none; border-radius: 8px;
+      padding: 5px 12px; font-size: 12px; font-weight: 500;
+      cursor: pointer; white-space: nowrap;
+      transition: background .15s;
+    }
+    #new-chat-btn:hover { background: #1d6ab8; }
+
+    #conv-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    #conv-list::-webkit-scrollbar { width: 4px; }
+    #conv-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+
+    .conv-item {
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .12s;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      position: relative;
+    }
+    .conv-item:hover { background: #f8fafc; }
+    .conv-item.active { background: #eff6ff; }
+
+    .conv-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: #dbeafe; color: #2d7dd2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0; margin-top: 1px;
+    }
+
+    .conv-meta { flex: 1; min-width: 0; }
+    .conv-title {
+      font-size: 13px; font-weight: 500; color: #1e293b;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .conv-date { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    .conv-delete {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #cbd5e1;
+      cursor: pointer; padding: 4px; border-radius: 6px;
+      opacity: 0; transition: opacity .15s, color .15s;
+      display: flex; align-items: center;
+    }
+    .conv-item:hover .conv-delete { opacity: 1; }
+    .conv-delete:hover { color: #ef4444; }
+
+    .conv-empty {
+      text-align: center; padding: 32px 16px;
+      color: #94a3b8; font-size: 13px; line-height: 1.6;
+    }
+
+    /* ── Chat area ── */
+    #chat-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    #chat::-webkit-scrollbar { width: 5px; }
+    #chat::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+    /* ── Welcome ── */
+    .welcome-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      max-width: 540px;
+      margin: 0 auto;
+      animation: fadeSlideIn .25s ease;
+    }
+
+    .welcome-harry {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    }
+
+    .welcome-harry-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, #2d7dd2, #1a5fa3);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px; color: #fff;
+    }
+
+    .welcome-harry-name { font-weight: 700; font-size: 17px; color: #1a2e4a; }
+    .welcome-harry-role { font-size: 12px; color: #64748b; margin-top: 1px; }
+
+    .welcome-card p {
+      font-size: 14px; color: #475569; line-height: 1.65;
+      margin-bottom: 16px;
+    }
+
+    .suggestions { display: flex; flex-direction: column; gap: 7px; }
+
+    .suggestion-btn {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 13.5px; color: #334155;
+      cursor: pointer; text-align: left;
+      transition: background .15s, border-color .15s;
+    }
+    .suggestion-btn:hover { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+
+    /* ── Messages ── */
+    .msg-row {
+      display: flex; gap: 10px;
+      max-width: 760px; width: 100%;
+      animation: fadeSlideIn .2s ease;
+    }
+    .msg-row.user { margin-left: auto; flex-direction: row-reverse; }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+    }
+    .avatar.harry-av {
+      background: linear-gradient(135deg, #2d7dd2, #1a5fa3);
+      color: #fff; font-size: 11px;
+    }
+    .avatar.user-av { background: #475569; color: #fff; }
+
+    .bubble {
+      padding: 11px 15px;
+      border-radius: 16px;
+      line-height: 1.6;
+      font-size: 14px;
+      max-width: calc(100% - 46px);
+      word-break: break-word;
+    }
+
+    .bubble.harry {
+      background: #fff;
+      color: #1e293b;
+      border-top-left-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    .bubble.user {
+      background: #2d7dd2;
+      color: #fff;
+      border-top-right-radius: 4px;
+    }
+
+    .bubble.harry p      { margin-bottom: 8px; }
+    .bubble.harry p:last-child { margin-bottom: 0; }
+    .bubble.harry strong { font-weight: 600; }
+    .bubble.harry em     { font-style: italic; }
+    .bubble.harry ul, .bubble.harry ol { padding-left: 20px; margin: 5px 0 8px; }
+    .bubble.harry li     { margin-bottom: 3px; }
+
+    /* ── Typing indicator ── */
+    .typing-row { display: flex; gap: 10px; max-width: 760px; }
+
+    .typing-bubble {
+      background: #fff;
+      border-radius: 16px; border-top-left-radius: 4px;
+      padding: 13px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #94a3b8;
+      animation: bounce .9s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .15s; }
+    .dot:nth-child(3) { animation-delay: .30s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40%           { transform: translateY(-5px); }
+    }
+
+    /* ── Input bar ── */
+    #input-bar {
+      background: #fff;
+      border-top: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      display: flex; gap: 10px; align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    #user-input {
+      flex: 1;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px; font-family: inherit;
+      resize: none; outline: none;
+      line-height: 1.5; max-height: 120px; overflow-y: auto;
+      color: #1e293b;
+      transition: border-color .2s;
+    }
+    #user-input:focus { border-color: #2d7dd2; }
+    #user-input::placeholder { color: #94a3b8; }
+
+    #send-btn {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: #2d7dd2; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s, transform .1s;
+    }
+    #send-btn:hover   { background: #1d6ab8; }
+    #send-btn:active  { transform: scale(.94); }
+    #send-btn:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+    #send-btn svg { width: 17px; height: 17px; fill: #fff; }
+
+    .footer-note {
+      text-align: center; font-size: 11px; color: #94a3b8;
+      padding: 5px 0 9px; flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <button id="sidebar-toggle" title="Gesprekken">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+  <div class="harry-avatar">HH</div>
+  <div class="header-info">
+    <h1>Harry HR</h1>
+    <p>Jouw persoonlijke HR-assistent · CloudSuite IP BV</p>
+  </div>
+  <div class="header-right">
+    <div class="user-pill">
+      {% if user.picture %}
+        <img class="user-pic" src="{{ user.picture }}" alt="{{ user.name }}" referrerpolicy="no-referrer">
+      {% else %}
+        <div class="user-pic-fallback">{{ user.name[0]|upper }}</div>
+      {% endif %}
+      <span class="user-name">{{ user.name.split()[0] }}</span>
+    </div>
+    <a href="/logout" class="logout-btn">Uitloggen</a>
+  </div>
+</header>
+
+<div class="main-layout">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <span>Gesprekken</span>
+      <button id="new-chat-btn">+ Nieuw</button>
+    </div>
+    <div id="conv-list">
+      <div class="conv-empty">Nog geen gesprekken opgeslagen.<br>Start een gesprek met Harry!</div>
+    </div>
+  </div>
+
+  <!-- Chat panel -->
+  <div id="chat-panel">
+    <div id="chat">
+      <div class="welcome-card" id="welcome">
+        <div class="welcome-harry">
+          <div class="welcome-harry-avatar">HH</div>
+          <div>
+            <div class="welcome-harry-name">Hallo, ik ben Harry HR!</div>
+            <div class="welcome-harry-role">HR-assistent · CloudSuite IP BV</div>
+          </div>
+        </div>
+        <p>Heb je een vraag over verlof, ziekte, je salaris, thuiswerken of iets anders uit de HR manual? Stel hem gewoon — ik geef je direct een helder antwoord.</p>
+        <div class="suggestions">
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Hoeveel vakantiedagen heb ik per jaar?</button>
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Hoe meld ik me ziek?</button>
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Wat is de thuiswerkvergoeding?</button>
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Hoeveel verlof krijg ik bij de geboorte van mijn kind?</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="input-bar">
+      <textarea id="user-input" rows="1" placeholder="Stel je vraag aan Harry HR…"></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Versturen">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <div class="footer-note">Harry antwoordt op basis van de HR manual september 2024 · Bij twijfel: neem contact op met HR</div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  const chat    = document.getElementById("chat");
+  const input   = document.getElementById("user-input");
+  const sendBtn = document.getElementById("send-btn");
+
+  let messages       = [];
+  let conversationId = generateId();
+  let firstUserMsg   = null;
+  let isSaved        = false;
+
+  // ── Sidebar toggle ─────────────────────────────────────────────────────────
+  document.getElementById("sidebar-toggle").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  // ── New chat ───────────────────────────────────────────────────────────────
+  document.getElementById("new-chat-btn").addEventListener("click", startNewChat);
+
+  function startNewChat() {
+    messages       = [];
+    conversationId = generateId();
+    firstUserMsg   = null;
+    isSaved        = false;
+    chat.innerHTML = `
+      <div class="welcome-card" id="welcome">
+        <div class="welcome-harry">
+          <div class="welcome-harry-avatar">HH</div>
+          <div>
+            <div class="welcome-harry-name">Hallo, ik ben Harry HR!</div>
+            <div class="welcome-harry-role">HR-assistent · CloudSuite IP BV</div>
+          </div>
+        </div>
+        <p>Heb je een vraag over verlof, ziekte, je salaris, thuiswerken of iets anders uit de HR manual? Stel hem gewoon — ik geef je direct een helder antwoord.</p>
+        <div class="suggestions">
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Hoeveel vakantiedagen heb ik per jaar?</button>
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Hoe meld ik me ziek?</button>
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Wat is de thuiswerkvergoeding?</button>
+          <button class="suggestion-btn" onclick="useSuggestion(this.textContent)">Hoeveel verlof krijg ik bij de geboorte van mijn kind?</button>
+        </div>
+      </div>`;
+    markActiveConv(null);
+    input.focus();
+  }
+
+  // ── Conversation list ──────────────────────────────────────────────────────
+  async function loadConversationList() {
+    const res  = await fetch("/conversations");
+    const list = await res.json();
+    const el   = document.getElementById("conv-list");
+
+    if (!list.length) {
+      el.innerHTML = `<div class="conv-empty">Nog geen gesprekken opgeslagen.<br>Start een gesprek met Harry!</div>`;
+      return;
+    }
+
+    el.innerHTML = list.map(c => `
+      <div class="conv-item" data-id="${c.id}" onclick="openConversation('${c.id}')">
+        <div class="conv-icon">💬</div>
+        <div class="conv-meta">
+          <div class="conv-title">${escHtml(c.title)}</div>
+          <div class="conv-date">${formatDate(c.updated_at)}</div>
+        </div>
+        <button class="conv-delete" title="Verwijderen"
+          onclick="event.stopPropagation(); deleteConversation('${c.id}', this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>`).join("");
+  }
+
+  async function openConversation(id) {
+    const res  = await fetch(`/conversations/${id}`);
+    const data = await res.json();
+
+    messages       = data.messages;
+    conversationId = id;
+    firstUserMsg   = data.messages.find(m => m.role === "user")?.content || null;
+    isSaved        = true;
+
+    chat.innerHTML = "";
+    for (const m of data.messages) {
+      if (m.role === "user") appendUserBubble(m.content);
+      else                   appendHarryBubble(m.content);
+    }
+    markActiveConv(id);
+    scrollToBottom();
+  }
+
+  async function deleteConversation(id, btn) {
+    await fetch(`/conversations/${id}`, { method: "DELETE" });
+    btn.closest(".conv-item").remove();
+    if (conversationId === id) startNewChat();
+    const el = document.getElementById("conv-list");
+    if (!el.querySelector(".conv-item")) {
+      el.innerHTML = `<div class="conv-empty">Nog geen gesprekken opgeslagen.<br>Start een gesprek met Harry!</div>`;
+    }
+  }
+
+  function markActiveConv(id) {
+    document.querySelectorAll(".conv-item").forEach(el => {
+      el.classList.toggle("active", el.dataset.id === id);
+    });
+  }
+
+  // ── Save helpers ───────────────────────────────────────────────────────────
+  async function saveMessage(role, content) {
+    const title = firstUserMsg
+      ? (firstUserMsg.length > 48 ? firstUserMsg.slice(0, 45) + "…" : firstUserMsg)
+      : "Gesprek";
+    await fetch("/save-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_id: conversationId, role, content, title }),
+    });
+    if (!isSaved) { isSaved = true; loadConversationList(); }
+    markActiveConv(conversationId);
+  }
+
+  // ── Chat UI helpers ────────────────────────────────────────────────────────
+  function appendUserBubble(text) {
+    const row = document.createElement("div");
+    row.className = "msg-row user";
+    row.innerHTML = `
+      <div class="avatar user-av">JIJ</div>
+      <div class="bubble user">${escHtml(text)}</div>`;
+    chat.appendChild(row);
+    scrollToBottom();
+  }
+
+  function appendHarryBubble(text) {
+    const row = document.createElement("div");
+    row.className = "msg-row";
+    row.innerHTML = `<div class="avatar harry-av">HH</div><div class="bubble harry">${renderMd(text)}</div>`;
+    chat.appendChild(row);
+    scrollToBottom();
+    return row.querySelector(".bubble");
+  }
+
+  function addTypingIndicator() {
+    const row = document.createElement("div");
+    row.className = "typing-row"; row.id = "typing";
+    row.innerHTML = `
+      <div class="avatar harry-av">HH</div>
+      <div class="typing-bubble">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>`;
+    chat.appendChild(row);
+    scrollToBottom();
+  }
+
+  function removeTypingIndicator() {
+    document.getElementById("typing")?.remove();
+  }
+
+  function appendStreamBubble() {
+    const row = document.createElement("div");
+    row.className = "msg-row";
+    row.innerHTML = `<div class="avatar harry-av">HH</div><div class="bubble harry" id="streaming-bubble"></div>`;
+    chat.appendChild(row);
+    scrollToBottom();
+    return document.getElementById("streaming-bubble");
+  }
+
+  function scrollToBottom() { chat.scrollTop = chat.scrollHeight; }
+
+  function useSuggestion(text) {
+    input.value = text;
+    input.dispatchEvent(new Event("input"));
+    sendMessage();
+  }
+
+  // ── Send ──────────────────────────────────────────────────────────────────
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    const welcome = document.getElementById("welcome");
+    if (welcome) welcome.remove();
+
+    input.value = "";
+    input.style.height = "auto";
+    sendBtn.disabled = true;
+
+    if (!firstUserMsg) firstUserMsg = text;
+
+    appendUserBubble(text);
+    messages.push({ role: "user", content: text });
+    await saveMessage("user", text);
+
+    addTypingIndicator();
+
+    try {
+      const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        removeTypingIndicator();
+        appendError(err.error || "Er is een fout opgetreden.");
+        return;
+      }
+
+      removeTypingIndicator();
+      const bubble = appendStreamBubble();
+
+      const reader  = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText  = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        bubble.innerHTML = renderMd(fullText);
+        scrollToBottom();
+      }
+
+      bubble.removeAttribute("id");
+      messages.push({ role: "assistant", content: fullText });
+      await saveMessage("assistant", fullText);
+      await loadConversationList();
+      markActiveConv(conversationId);
+
+    } catch {
+      removeTypingIndicator();
+      appendError("Verbindingsfout. Controleer of de server actief is.");
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  function appendError(msg) {
+    const row = document.createElement("div");
+    row.className = "msg-row";
+    row.innerHTML = `
+      <div class="avatar harry-av">HH</div>
+      <div class="bubble harry" style="color:#dc2626;background:#fef2f2;border:1px solid #fecaca">
+        ${escHtml(msg)}
+      </div>`;
+    chat.appendChild(row);
+    scrollToBottom();
+  }
+
+  // ── Markdown renderer (basic) ──────────────────────────────────────────────
+  function renderMd(text) {
+    let html = text
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g,     "<em>$1</em>");
+
+    const lines = html.split("\n");
+    const out = [];
+    let inList = false;
+
+    for (const line of lines) {
+      const li = line.match(/^[-•]\s(.+)/);
+      if (li) {
+        if (!inList) { out.push("<ul>"); inList = true; }
+        out.push(`<li>${li[1]}</li>`);
+      } else {
+        if (inList) { out.push("</ul>"); inList = false; }
+        if (line.trim()) out.push(`<p>${line}</p>`);
+      }
+    }
+    if (inList) out.push("</ul>");
+    return out.join("");
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function generateId() {
+    return "conv-" + Date.now() + "-" + Math.random().toString(36).slice(2,8);
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso + "Z");
+    const now = new Date();
+    const diff = (now - d) / 1000;
+    if (diff < 60)     return "Zojuist";
+    if (diff < 3600)   return Math.floor(diff/60) + " min geleden";
+    if (diff < 86400)  return Math.floor(diff/3600) + " uur geleden";
+    return d.toLocaleDateString("nl-NL", { day:"numeric", month:"short" });
+  }
+
+  // ── Input auto-resize ─────────────────────────────────────────────────────
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 120) + "px";
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadConversationList();
+</script>
+</body>
+</html>

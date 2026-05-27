@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: harry-hr-cloudsuite
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    disk:
+      name: conversations-db
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /data/conversations.db
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false          # handmatig invullen in Render dashboard
+      - key: GOOGLE_CLIENT_ID
+        sync: false          # handmatig invullen in Render dashboard
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false          # handmatig invullen in Render dashboard
+      - key: ALLOWED_DOMAIN
+        value: cloudsuite.com
